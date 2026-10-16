@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{admin/layout}">
+<head>
+    <title>BuildingStore Admin | News</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
+            <h1 class="h2 fw-bold text-light mb-0">News Management</h1>
+            <button class="btn btn-primary" onclick="openNewsModal()"><i class="bi bi-plus-lg me-2"></i>Create News</button>
+        </div>
+
+        <h3 class="h5 fw-bold text-light mb-3 mt-4">Drafts (Unpublished)</h3>
+        <div class="card-glass p-0 mb-4 border-warning">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-glass mb-0" id="draftNewsTable">
+                        <thead>
+                            <tr>
+                                <th width="5%">ID</th>
+                                <th>Title</th>
+                                <th width="20%">Publication Date</th>
+                                <th width="15%">Status</th>
+                                <th width="15%" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="draftNewsTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <div class="spinner-border text-primary speed-fast" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="mt-2">Loading drafts...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-top border-dark border-opacity-10 p-3" id="draftPaginationContainer">
+                <!-- Pagination injected here -->
+            </div>
+        </div>
+
+        <h3 class="h5 fw-bold text-light mb-3 mt-4">Published News</h3>
+        <div class="card-glass p-0 mb-4 border-success">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-glass mb-0" id="publishedNewsTable">
+                        <thead>
+                            <tr>
+                                <th width="5%">ID</th>
+                                <th>Title</th>
+                                <th width="20%">Publication Date</th>
+                                <th width="15%">Status</th>
+                                <th width="15%" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="publishedNewsTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <div class="spinner-border text-primary speed-fast" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="mt-2">Loading news...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-top border-dark border-opacity-10 p-3" id="publishedPaginationContainer">
+                <!-- Pagination injected here -->
+            </div>
+        </div>
+        
+        <!-- Create/Edit Modal -->
+        <div class="modal fade" id="newsModal" tabindex="-1" aria-labelledby="newsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold text-light" id="newsModalLabel">Create News</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="newsForm">
+                        <div class="modal-body p-4">
+                            <input type="hidden" id="newsId">
+                            <input type="hidden" id="newsImageUrl">
+                            
+                            <div class="row g-3">
+                                <div class="col-md-7">
+                                    <div class="mb-3">
+                                        <label for="title" class="form-label">Title *</label>
+                                        <input type="text" class="form-control" id="title" required placeholder="Enter news title">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="content" class="form-label">Content *</label>
+                                        <textarea class="form-control" id="newsContent" rows="6" required placeholder="Enter news content"></textarea>
+                                    </div>
+                                    <div class="mb-3 form-check form-switch ps-5">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="isPublished" checked>
+                                        <label class="form-check-label text-light ms-2" for="isPublished">Published</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="mb-3">
+                                        <label for="newsImageFile" class="form-label">Image *</label>
+                                        <input type="file" class="form-control" id="newsImageFile" accept="image/*" onchange="previewSelectedNewsImage(this)">
+                                        <div class="form-text text-muted small">Select an image file to upload.</div>
+                                    </div>
+                                    <div class="mt-2 text-center">
+                                        <img id="newsImagePreview" src="https://via.placeholder.com/300x200?text=Image+Preview" alt="Preview" class="img-fluid rounded border border-secondary" style="max-height: 200px; object-fit: cover;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary text-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary px-4" id="saveBtn">Save News</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // --- News JS logic ---
+            let newsModalInstance = null;
+            let draftParams = { page: 0, size: 5, sort: 'id,desc', published: false };
+            let publishedParams = { page: 0, size: 10, sort: 'id,desc', published: true };
+            let newsCache = {};
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                newsModalInstance = new bootstrap.Modal(document.getElementById('newsModal'));
+                loadAllNews();
+                
+                // Form Submit
+                document.getElementById('newsForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await saveNews();
+                });
+                
+                // Pagination clicks for Drafts
+                document.getElementById('draftPaginationContainer').addEventListener('click', (e) => {
+                    if (e.target.tagName === 'A' && e.target.classList.contains('page-link')) {
+                        e.preventDefault();
+                        const newPage = e.target.getAttribute('data-page');
+                        if (newPage !== null) {
+                            draftParams.page = parseInt(newPage);
+                            loadDraftNews();
+                        }
+                    }
+                });
+
+                // Pagination clicks for Published
+                document.getElementById('publishedPaginationContainer').addEventListener('click', (e) => {
+                    if (e.target.tagName === 'A' && e.target.classList.contains('page-link')) {
+                        e.preventDefault();
+                        const newPage = e.target.getAttribute('data-page');
+                        if (newPage !== null) {
+                            publishedParams.page = parseInt(newPage);
+                            loadPublishedNews();
+                        }
+                    }
+                });
+            });
+            
+            function previewSelectedNewsImage(input) {
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('newsImagePreview').src = e.target.result;
+                    }
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+            
+            function updateNewsImagePreview(url) {
+                const img = document.getElementById('newsImagePreview');
+                if (url) {
+                    img.src = url;
+                } else {
+                    img.src = 'https://via.placeholder.com/300x200?text=Image+Preview';
+                }
+            }
+
+            function loadAllNews() {
+                loadDraftNews();
+                loadPublishedNews();
+            }
+
+            async function loadDraftNews() {
+                await fetchAndRenderNews(draftParams, 'draftNewsTableBody', 'draftPaginationContainer', 'No draft news found.');
+            }
+
+            async function loadPublishedNews() {
+                await fetchAndRenderNews(publishedParams, 'publishedNewsTableBody', 'publishedPaginationContainer', 'No published news found.');
+            }
+
+            async function fetchAndRenderNews(params, tbodyId, paginationId, emptyMessage) {
+                try {
+                    const tbody = document.getElementById(tbodyId);
+                    
+                    const query = AdminAPI.buildQueryString(params);
+                    const data = await fetchAPI(`/api/news${query}`);
+                    
+                    if (data.empty) {
+                        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 mb-2 d-block"></i> ${emptyMessage}</td></tr>`;
+                        document.getElementById(paginationId).innerHTML = '';
+                        return;
+                    }
+                    
+                    let html = '';
+                    data.content.forEach(item => {
+                        newsCache[item.id] = item;
+                        const date = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A';
+                        const statusBadge = item.published 
+                            ? `<span class="badge badge-glass badge-glass-success"><i class="bi bi-check-circle me-1"></i> Published</span>`
+                            : `<span class="badge badge-glass badge-glass-warning"><i class="bi bi-clock me-1"></i> Draft</span>`;
+                            
+                        html += `
+                        <tr>
+                            <td class="text-light fw-bold font-monospace">#${item.id}</td>
+                            <td class="fw-medium text-light">${escapeHtml(item.title)}</td>
+                            <td class="text-muted">${date}</td>
+                            <td>${statusBadge}</td>
+                            <td class="text-center">
+                                <button class="btn btn-action btn-action-view" onclick="togglePublish(${item.id})" title="Toggle Publication" data-bs-toggle="tooltip">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                                <button class="btn btn-action btn-action-edit" onclick="editNews(${item.id})" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-action btn-action-delete" onclick="deleteNews(${item.id}, '${escapeHtml(item.title)}')" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        `;
+                    });
+                    
+                    tbody.innerHTML = html;
+                    document.getElementById(paginationId).innerHTML = AdminAPI.renderPagination(data);
+                    
+                    // Enable tooltips
+                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                      return new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
+                    
+                } catch (error) {
+                    showErrorToast('Failed to load news');
+                }
+            }
+            
+            function openNewsModal() {
+                document.getElementById('newsForm').reset();
+                document.getElementById('newsId').value = '';
+                document.getElementById('newsImageUrl').value = '';
+                updateNewsImagePreview('');
+                document.getElementById('newsModalLabel').textContent = 'Create News';
+                newsModalInstance.show();
+            }
+            
+            function editNews(id) {
+                const news = newsCache[id];
+                if (!news) {
+                    showErrorToast('News details not found in cache');
+                    return;
+                }
+                
+                document.getElementById('newsId').value = news.id;
+                document.getElementById('title').value = news.title;
+                document.getElementById('newsContent').value = news.content;
+                document.getElementById('isPublished').checked = news.published;
+                document.getElementById('newsImageUrl').value = news.newsImageUrl || '';
+                updateNewsImagePreview(news.newsImageUrl);
+                
+                document.getElementById('newsModalLabel').textContent = 'Edit News';
+                newsModalInstance.show();
+            }
+            
+            async function saveNews() {
+                const id = document.getElementById('newsId').value;
+                const fileInput = document.getElementById('newsImageFile');
+                let imageUrl = document.getElementById('newsImageUrl').value;
+                
+                try {
+                    const btn = document.getElementById('saveBtn');
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                    
+                    if (fileInput.files.length > 0) {
+                        const formData = new FormData();
+                        formData.append('file', fileInput.files[0]);
+                        
+                        const uploadRes = await fetch('/api/images/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (!uploadRes.ok) throw new Error('Image upload failed');
+                        imageUrl = await uploadRes.text();
+                    }
+                    
+                    if (!imageUrl) {
+                        throw new Error('News image is required');
+                    }
+                    
+                    const payload = { 
+                        title: document.getElementById('title').value, 
+                        content: document.getElementById('newsContent').value,
+                        newsImageUrl: imageUrl,
+                        published: document.getElementById('isPublished').checked 
+                    };
+                    
+                    if (id) {
+                        await fetchAPI(`/api/news/${id}`, 'PUT', payload);
+                        showSuccessToast('News updated successfully');
+                    } else {
+                        await fetchAPI(`/api/news`, 'POST', payload);
+                        showSuccessToast('News created successfully');
+                    }
+                    
+                    newsModalInstance.hide();
+                    loadAllNews(); // Reload
+                } catch (error) {
+                    showErrorToast(error.message || 'Failed to save news');
+                } finally {
+                    const btn = document.getElementById('saveBtn');
+                    btn.disabled = false;
+                    btn.textContent = 'Save News';
+                }
+            }
+            
+            async function deleteNews(id, title) {
+                if (await confirmDelete(title)) {
+                    try {
+                        await fetchAPI(`/api/news/${id}`, 'DELETE');
+                        showSuccessToast('News deleted successfully');
+                        loadAllNews();
+                    } catch (error) {
+                         showErrorToast('Failed to delete news');
+                    }
+                }
+            }
+            
+            async function togglePublish(id) {
+                 try {
+                     await fetchAPI(`/api/news/${id}/toggle-publication`, 'PATCH');
+                     showSuccessToast('Publication status toggled');
+                     loadAllNews();
+                 } catch (error) {
+                     showErrorToast('Failed to toggle status');
+                 }
+            }
+            
+            function escapeHtml(unsafe) {
+                return (unsafe || '').toString()
+                     .replace(/&/g, "&amp;")
+                     .replace(/</g, "&lt;")
+                     .replace(/>/g, "&gt;")
+                     .replace(/"/g, "&quot;")
+                     .replace(/'/g, "&#039;");
+             }
+        </script>
+    </th:block>
+</body>
+</html>

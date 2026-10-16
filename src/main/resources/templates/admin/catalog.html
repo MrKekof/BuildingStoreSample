@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{admin/layout}">
+<head>
+    <title>BuildingStore Admin | Catalog</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom border-dark border-opacity-10">
+            <h1 class="h2 fw-bold text-light mb-0">Catalog Management</h1>
+            <button class="btn btn-primary" onclick="openProductModal()"><i class="bi bi-plus-lg me-2"></i>Add Product</button>
+        </div>
+
+        <div class="card-glass p-0 mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-glass mb-0" id="catalogTable">
+                        <thead>
+                            <tr>
+                                <th width="5%">ID</th>
+                                <th width="10%">Image</th>
+                                <th>Name</th>
+                                <th width="15%">Category</th>
+                                <th width="10%">Price</th>
+                                <th width="15%" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalogTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <div class="spinner-border text-primary speed-fast" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="mt-2">Loading catalog...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-top border-dark border-opacity-10 p-3" id="paginationContainer">
+                <!-- Pagination injected here -->
+            </div>
+        </div>
+        
+        <!-- Create/Edit Modal -->
+        <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold text-light" id="productModalLabel">Add Product</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="productForm">
+                        <div class="modal-body p-4 row g-3">
+                            <input type="hidden" id="productId">
+                            
+                            <!-- Left Column -->
+                            <div class="col-md-7">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Product Name *</label>
+                                    <input type="text" class="form-control" id="name" required placeholder="Enter product name">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description *</label>
+                                    <textarea class="form-control" id="description" rows="5" required placeholder="Enter detailed description"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="catalogImageFile" class="form-label">Image *</label>
+                                    <input type="file" class="form-control" id="catalogImageFile" accept="image/*" onchange="previewSelectedCatalogImage(this)">
+                                    <input type="hidden" id="catalogImageUrl">
+                                    <div class="form-text text-muted small">Select an image file to upload.</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Right Column -->
+                            <div class="col-md-5">
+                                <div class="mb-3">
+                                    <label for="price" class="form-label">Price *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-currency-dollar"></i></span>
+                                        <input type="number" class="form-control border-start-0 ps-0" id="price" required min="0.01" step="0.01" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">Category *</label>
+                                    <input type="text" class="form-control" id="category" required placeholder="e.g., Pipes">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="standard" class="form-label">Standard (GOST/ISO) *</label>
+                                    <input type="text" class="form-control" id="standard" required placeholder="e.g., GOST 12345">
+                                </div>
+                                <div class="row">
+                                    <div class="col-6 mb-3">
+                                        <label for="diameter" class="form-label">Diameter *</label>
+                                        <input type="text" class="form-control" id="diameter" required placeholder="e.g., 50mm">
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <label for="material" class="form-label">Material *</label>
+                                        <input type="text" class="form-control" id="material" required placeholder="e.g., Steel">
+                                    </div>
+                                </div>
+                                <div class="mt-2 text-center">
+                                    <img id="imagePreview" src="https://via.placeholder.com/300x200?text=Image+Preview" alt="Preview" class="img-fluid rounded border border-secondary" style="max-height: 150px; object-fit: cover;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary text-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary px-4" id="saveBtn">Save Product</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            let productModalInstance = null;
+            let currentParams = { page: 0, size: 10, sort: 'name,asc' };
+            // In a real SPA, we'd cache the current page to avoid re-fetching on edit, because GET /{id} is missing.
+            let productCache = {};
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                productModalInstance = new bootstrap.Modal(document.getElementById('productModal'));
+                loadCatalog();
+                
+                document.getElementById('productForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await saveProduct();
+                });
+                
+                document.getElementById('paginationContainer').addEventListener('click', (e) => {
+                    if (e.target.tagName === 'A' && e.target.classList.contains('page-link')) {
+                        e.preventDefault();
+                        const newPage = e.target.getAttribute('data-page');
+                        if (newPage !== null) {
+                            currentParams.page = parseInt(newPage);
+                            loadCatalog();
+                        }
+                    }
+                });
+            });
+            
+            function previewSelectedCatalogImage(input) {
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('imagePreview').src = e.target.result;
+                    }
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+            
+            function updateImagePreview() {
+                const url = document.getElementById('catalogImageUrl').value;
+                const img = document.getElementById('imagePreview');
+                if (url) {
+                    img.src = url;
+                    img.onerror = function() {
+                        this.src = 'https://via.placeholder.com/300x200?text=Invalid+Image+URL';
+                    };
+                } else {
+                    img.src = 'https://via.placeholder.com/300x200?text=Image+Preview';
+                }
+            }
+            
+            async function loadCatalog() {
+                try {
+                    const tbody = document.getElementById('catalogTableBody');
+                    
+                    const query = AdminAPI.buildQueryString(currentParams);
+                    const data = await fetchAPI(`/api/catalog${query}`);
+                    
+                    if (data.empty) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-box fs-1 mb-2 d-block"></i> Catalog is empty.</td></tr>`;
+                        document.getElementById('paginationContainer').innerHTML = '';
+                        return;
+                    }
+                    
+                    productCache = {}; // Reset cache
+                    let html = '';
+                    data.content.forEach(item => {
+                        productCache[item.id] = item; // Cache for edit
+                        
+                        html += `
+                        <tr>
+                            <td class="text-light fw-bold font-monospace">#${item.id}</td>
+                            <td>
+                                <img src="${escapeHtml(item.catalogImageUrl)}" alt="img" class="rounded object-fit-cover" width="40" height="40" onerror="this.src='https://via.placeholder.com/40'">
+                            </td>
+                            <td class="fw-medium text-light">${escapeHtml(item.name)}</td>
+                            <td><span class="badge badge-glass badge-glass-warning">${escapeHtml(item.category)}</span></td>
+                            <td class="fw-bold text-success">$${Number(item.price).toFixed(2)}</td>
+                            <td class="text-center">
+                                <button class="btn btn-action btn-action-edit" onclick="editProduct(${item.id})" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-action btn-action-delete" onclick="deleteProduct(${item.id}, '${escapeHtml(item.name)}')" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        `;
+                    });
+                    
+                    tbody.innerHTML = html;
+                    document.getElementById('paginationContainer').innerHTML = AdminAPI.renderPagination(data);
+                    
+                } catch (error) {
+                    showErrorToast('Failed to load catalog');
+                }
+            }
+            
+            function openProductModal() {
+                document.getElementById('productForm').reset();
+                document.getElementById('productId').value = '';
+                document.getElementById('catalogImageUrl').value = '';
+                document.getElementById('productModalLabel').textContent = 'Add Product';
+                updateImagePreview();
+                productModalInstance.show();
+            }
+            
+            function editProduct(id) {
+                const product = productCache[id];
+                if (!product) {
+                    showErrorToast('Product details not found in cache');
+                    return;
+                }
+                
+                document.getElementById('productId').value = product.id;
+                document.getElementById('name').value = product.name;
+                document.getElementById('description').value = product.description;
+                document.getElementById('catalogImageUrl').value = product.catalogImageUrl;
+                document.getElementById('price').value = product.price;
+                document.getElementById('category').value = product.category;
+                document.getElementById('standard').value = product.standard || '';
+                document.getElementById('diameter').value = product.diameter || '';
+                document.getElementById('material').value = product.material || '';
+                
+                updateImagePreview();
+                document.getElementById('productModalLabel').textContent = 'Edit Product';
+                productModalInstance.show();
+            }
+            
+            async function saveProduct() {
+                const id = document.getElementById('productId').value;
+                const fileInput = document.getElementById('catalogImageFile');
+                let imageUrl = document.getElementById('catalogImageUrl').value;
+                
+                try {
+                    const btn = document.getElementById('saveBtn');
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                    
+                    if (fileInput.files.length > 0) {
+                        const formData = new FormData();
+                        formData.append('file', fileInput.files[0]);
+                        const uploadRes = await fetch('/api/images/upload', { method: 'POST', body: formData });
+                        if (!uploadRes.ok) throw new Error('Image upload failed');
+                        imageUrl = await uploadRes.text();
+                    }
+                    if (!imageUrl) throw new Error('Product image is required');
+                    
+                    const payload = {
+                        name: document.getElementById('name').value,
+                        description: document.getElementById('description').value,
+                        catalogImageUrl: imageUrl,
+                        price: parseFloat(document.getElementById('price').value),
+                        category: document.getElementById('category').value,
+                        standard: document.getElementById('standard').value,
+                        diameter: document.getElementById('diameter').value,
+                        material: document.getElementById('material').value
+                    };
+                    
+                    if (id) {
+                        await fetchAPI(`/api/catalog/${id}`, 'PUT', payload);
+                        showSuccessToast('Product updated successfully');
+                    } else {
+                        await fetchAPI(`/api/catalog`, 'POST', payload);
+                        showSuccessToast('Product created successfully');
+                    }
+                    
+                    productModalInstance.hide();
+                    loadCatalog();
+                } catch (error) {
+                    showErrorToast(error.message || 'Failed to save product');
+                } finally {
+                    const btn = document.getElementById('saveBtn');
+                    btn.disabled = false;
+                    btn.textContent = 'Save Product';
+                }
+            }
+            
+            async function deleteProduct(id, name) {
+                if (await confirmDelete(name)) {
+                    try {
+                        await fetchAPI(`/api/catalog/${id}`, 'DELETE');
+                        showSuccessToast('Product deleted successfully');
+                        loadCatalog();
+                    } catch (error) {
+                         showErrorToast('Failed to delete product');
+                    }
+                }
+            }
+            
+            function escapeHtml(unsafe) {
+                return (unsafe || '').toString()
+                     .replace(/&/g, "&amp;")
+                     .replace(/</g, "&lt;")
+                     .replace(/>/g, "&gt;")
+                     .replace(/"/g, "&quot;")
+                     .replace(/'/g, "&#039;");
+             }
+        </script>
+    </th:block>
+</body>
+</html>

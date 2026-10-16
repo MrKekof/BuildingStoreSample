@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{admin/layout}">
+<head>
+    <title>BuildingStore Admin | CMS Pages</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom border-dark border-opacity-10">
+            <h1 class="h2 fw-bold text-light mb-0">Page Management</h1>
+            <button class="btn btn-primary" onclick="openPageModal()"><i class="bi bi-plus-lg me-2"></i>Create Page</button>
+        </div>
+
+        <div class="card-glass p-0 mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-glass mb-0" id="pagesTable">
+                        <thead>
+                            <tr>
+                                <th width="20%">Slug / Route</th>
+                                <th>Title</th>
+                                <th width="20%">Created At</th>
+                                <th width="15%" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pagesTableBody">
+                            <tr>
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <div class="spinner-border text-primary speed-fast" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="mt-2">Loading pages...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-top border-dark border-opacity-10 p-3" id="paginationContainer">
+                <!-- Pagination injected here -->
+            </div>
+        </div>
+        
+        <!-- Create/Edit Modal -->
+        <div class="modal fade" id="pageModal" tabindex="-1" aria-labelledby="pageModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold text-light" id="pageModalLabel">Create Page</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="pageForm">
+                        <div class="modal-body p-4">
+                            <input type="hidden" id="originalSlug">
+                            <input type="hidden" id="operationMode" value="create">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="pageSlug" class="form-label">URL Slug * <small class="text-muted">(e.g., about-us)</small></label>
+                                    <input type="text" class="form-control" id="pageSlug" required placeholder="Enter URL slug">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="pageTitle" class="form-label">Page Title *</label>
+                                    <input type="text" class="form-control" id="pageTitle" required placeholder="Enter page title">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="pageContent" class="form-label">HTML Content *</label>
+                                <textarea class="form-control font-monospace" id="pageContent" rows="12" required placeholder="Enter HTML content"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary text-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary px-4" id="saveBtn">Save Page</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            let pageModalInstance = null;
+            let currentParams = { page: 0, size: 10, sort: 'createdAt,desc' };
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                pageModalInstance = new bootstrap.Modal(document.getElementById('pageModal'));
+                loadPages();
+                
+                document.getElementById('pageForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await savePage();
+                });
+                
+                document.getElementById('paginationContainer').addEventListener('click', (e) => {
+                    if (e.target.tagName === 'A' && e.target.classList.contains('page-link')) {
+                        e.preventDefault();
+                        const newPage = e.target.getAttribute('data-page');
+                        if (newPage !== null) {
+                            currentParams.page = parseInt(newPage);
+                            loadPages();
+                        }
+                    }
+                });
+            });
+            
+            async function loadPages() {
+                try {
+                    const tbody = document.getElementById('pagesTableBody');
+                    // The backend API is /api/content/search for paginated results
+                    const query = AdminAPI.buildQueryString(currentParams);
+                    const data = await fetchAPI(`/api/content/search${query}`);
+                    
+                    if (data.empty) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-5 text-muted"><i class="bi bi-file-earmark-x fs-1 mb-2 d-block"></i> No pages found.</td></tr>`;
+                        document.getElementById('paginationContainer').innerHTML = '';
+                        return;
+                    }
+                    
+                    let html = '';
+                    data.content.forEach(item => {
+                        const date = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A';
+                            
+                        html += `
+                        <tr>
+                            <td class="fw-medium text-primary"><i class="bi bi-link-45deg me-1"></i>/${escapeHtml(item.slug)}</td>
+                            <td class="text-light fw-medium">${escapeHtml(item.title)}</td>
+                            <td class="text-muted">${date}</td>
+                            <td class="text-center">
+                                <a href="/pages/${escapeHtml(item.slug)}" target="_blank" class="btn btn-action btn-action-view" title="View in site" data-bs-toggle="tooltip">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <button class="btn btn-action btn-action-edit" onclick="editPage('${escapeHtml(item.slug)}')" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-action btn-action-delete" onclick="deletePage('${escapeHtml(item.slug)}')" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        `;
+                    });
+                    
+                    tbody.innerHTML = html;
+                    document.getElementById('paginationContainer').innerHTML = AdminAPI.renderPagination(data);
+                    
+                    // Enable tooltips
+                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                      return new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
+                    
+                } catch (error) {
+                    showErrorToast('Failed to load pages');
+                }
+            }
+            
+            function openPageModal() {
+                document.getElementById('pageForm').reset();
+                document.getElementById('operationMode').value = 'create';
+                document.getElementById('originalSlug').value = '';
+                document.getElementById('pageSlug').readOnly = false;
+                document.getElementById('pageModalLabel').textContent = 'Create Page';
+                pageModalInstance.show();
+            }
+            
+            async function editPage(slug) {
+                try {
+                    // Fetch existing page details using existing controller GET /{slug}
+                    const page = await fetchAPI(`/api/content/${slug}`);
+                    
+                    document.getElementById('pageSlug').value = page.slug;
+                    // Slugs are usually unique identifiers and keys in REST PUT updates, disable editing slug or handle differently.
+                    // Actually the controller takes PUT /{slug} with body containing slug (if different). We will leave it editable but track original.
+                    document.getElementById('pageSlug').readOnly = true; 
+                    
+                    document.getElementById('pageTitle').value = page.title;
+                    document.getElementById('pageContent').value = page.content;
+                    
+                    document.getElementById('originalSlug').value = page.slug;
+                    document.getElementById('operationMode').value = 'edit';
+                    
+                    document.getElementById('pageModalLabel').textContent = 'Edit Page';
+                    pageModalInstance.show();
+                } catch(error) {
+                    showErrorToast('Failed to load page details');
+                }
+            }
+            
+            async function savePage() {
+                const title = document.getElementById('pageTitle').value;
+                const slug = document.getElementById('pageSlug').value;
+                const content = document.getElementById('pageContent').value;
+                
+                const payload = { slug, title, content };
+                const mode = document.getElementById('operationMode').value;
+                const originalSlug = document.getElementById('originalSlug').value;
+                
+                try {
+                    const btn = document.getElementById('saveBtn');
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                    
+                    if (mode === 'edit') {
+                        await fetchAPI(`/api/content/${originalSlug}`, 'PUT', payload);
+                        showSuccessToast('Page updated successfully');
+                    } else {
+                        await fetchAPI(`/api/content`, 'POST', payload);
+                        showSuccessToast('Page created successfully');
+                    }
+                    
+                    pageModalInstance.hide();
+                    loadPages();
+                } catch (error) {
+                    showErrorToast(error.message || 'Failed to save page');
+                } finally {
+                    const btn = document.getElementById('saveBtn');
+                    btn.disabled = false;
+                    btn.textContent = 'Save Page';
+                }
+            }
+            
+            async function deletePage(slug) {
+                if (await confirmDelete(slug)) {
+                    try {
+                        await fetchAPI(`/api/content/${slug}`, 'DELETE');
+                        showSuccessToast('Page deleted successfully');
+                        loadPages();
+                    } catch (error) {
+                         showErrorToast('Failed to delete page');
+                    }
+                }
+            }
+            
+            function escapeHtml(unsafe) {
+                return (unsafe || '').toString()
+                     .replace(/&/g, "&amp;")
+                     .replace(/</g, "&lt;")
+                     .replace(/>/g, "&gt;")
+                     .replace(/"/g, "&quot;")
+                     .replace(/'/g, "&#039;");
+             }
+        </script>
+    </th:block>
+</body>
+</html>

@@ -1,0 +1,2 @@
+# BuildingStoreSample
+Practice project

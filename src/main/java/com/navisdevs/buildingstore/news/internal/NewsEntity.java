@@ -15,7 +15,7 @@ import lombok.Setter;
 @NoArgsConstructor @AllArgsConstructor
 
  class NewsEntity extends MainEntity {
-    @Column(nullable=false)
+    @Column(nullable=false, unique = true)
     private  String title;
 
     @Column(columnDefinition ="TEXT" , nullable=false)

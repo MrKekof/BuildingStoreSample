@@ -13,7 +13,7 @@ import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
-public class ImageServiceImpl implements ImageService {
+class ImageServiceImpl implements ImageService {
 
     private final ImageRepo imageRepo;
 

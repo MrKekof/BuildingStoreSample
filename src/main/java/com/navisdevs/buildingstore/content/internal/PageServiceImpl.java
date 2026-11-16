@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 
-public class PageServiceImpl implements PageService {
+class PageServiceImpl implements PageService {
 
     private final PageRepo pageRepo;
 

@@ -13,7 +13,7 @@ import lombok.Setter;
 @Getter @Setter
 @Table(name="pages")
 @NoArgsConstructor @AllArgsConstructor
-public class PageEntity extends MainEntity {
+class PageEntity extends MainEntity {
     @Column(nullable = false, unique = true)
     private String slug;
     @Column(nullable = false)

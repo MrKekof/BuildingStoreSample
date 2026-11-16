@@ -2,6 +2,7 @@ package com.navisdevs.buildingstore.content;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -39,7 +40,7 @@ public class PageController {
 
     @GetMapping("/search")
     public Page<PageResponse> searchPage(@RequestParam(required = false) String slug,
-                                         Pageable pageable){
+                                         @ParameterObject Pageable pageable){
         return pageService.searchPage(slug, pageable);
     }
 

@@ -13,6 +13,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -33,13 +35,14 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/news/**", "/api/catalog/**", "/api/content/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/news/**", "/api/catalog/**", "/api/content/**", "/api/images/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html" , "/error").permitAll()
 
                         .requestMatchers(HttpMethod.POST,
                                 "/api/news/**",
                                 "/api/content/**",
-                                "/api/catalog/**").hasRole("ADMIN")
+                                "/api/catalog/**",
+                                "/api/images/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT,
                                 "/api/news/**",
                                 "/api/content/**",
@@ -61,10 +64,15 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public UserDetailsService userDetailsService() {
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
         UserDetails admin = User.builder()
                 .username(adminUsername)
-                .password("{noop}" + adminPassword)
+                .password(passwordEncoder.encode(adminPassword))
                 .roles("ADMIN")
                 .build();
 

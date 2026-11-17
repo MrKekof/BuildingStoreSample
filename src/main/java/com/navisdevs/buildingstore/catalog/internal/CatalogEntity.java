@@ -17,7 +17,7 @@ import java.math.BigDecimal;
 
 class CatalogEntity extends MainEntity {
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 
     @Column(nullable = false, columnDefinition = "TEXT")
@@ -32,7 +32,7 @@ class CatalogEntity extends MainEntity {
     @Column(nullable = false)
     private String standard;
 
-    @Column
+    @Column(nullable = false)
     private String diameter;
 
     @Column(nullable = false)

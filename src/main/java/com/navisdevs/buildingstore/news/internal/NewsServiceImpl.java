@@ -43,7 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
         news.setTitle(newsRequest.title());
         news.setContent(newsRequest.content());
         news.setNewsImageUrl(newsRequest.newsImageUrl());
-
+        news.setPublished(Boolean.TRUE.equals(newsRequest.published()));
 
         NewsEntity saved = newsRepo.save(news);
         return mapToResponse(saved);
@@ -51,12 +51,16 @@ import org.springframework.transaction.annotation.Transactional;
 
     @Override
     @Transactional
-    public NewsResponse updateNews(Long id ,NewsRequest request) {
-        NewsEntity news = newsRepo.findById(id).orElseThrow(()-> new ResourceNotFoundException("Новость с id " + id+" не найдена"));
+    public NewsResponse updateNews(Long id, NewsRequest request) {
+        NewsEntity news = newsRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Новость с id " + id + " не найдена"));
 
         news.setTitle(request.title());
         news.setContent(request.content());
         news.setNewsImageUrl(request.newsImageUrl());
+        if (request.published() != null) {
+            news.setPublished(request.published());
+        }
 
         return mapToResponse(newsRepo.save(news));
     }

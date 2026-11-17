@@ -126,13 +126,13 @@
                             <td class="text-light fw-medium">${escapeHtml(item.title)}</td>
                             <td class="text-muted">${date}</td>
                             <td class="text-center">
-                                <a href="/pages/${escapeHtml(item.slug)}" target="_blank" class="btn btn-action btn-action-view" title="View in site" data-bs-toggle="tooltip">
+                                <a href="/pages/${encodeURIComponent(item.slug)}" target="_blank" class="btn btn-action btn-action-view" title="View in site" data-bs-toggle="tooltip">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <button class="btn btn-action btn-action-edit" onclick="editPage('${escapeHtml(item.slug)}')" title="Edit">
+                                <button class="btn btn-action btn-action-edit" data-slug="${escapeHtml(item.slug)}" onclick="editPage(this.dataset.slug)" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button class="btn btn-action btn-action-delete" onclick="deletePage('${escapeHtml(item.slug)}')" title="Delete">
+                                <button class="btn btn-action btn-action-delete" data-slug="${escapeHtml(item.slug)}" onclick="deletePage(this.dataset.slug)" title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -166,12 +166,10 @@
             async function editPage(slug) {
                 try {
                     // Fetch existing page details using existing controller GET /{slug}
-                    const page = await fetchAPI(`/api/content/${slug}`);
+                    const page = await fetchAPI(`/api/content/${encodeURIComponent(slug)}`);
                     
                     document.getElementById('pageSlug').value = page.slug;
-                    // Slugs are usually unique identifiers and keys in REST PUT updates, disable editing slug or handle differently.
-                    // Actually the controller takes PUT /{slug} with body containing slug (if different). We will leave it editable but track original.
-                    document.getElementById('pageSlug').readOnly = true; 
+                    document.getElementById('pageSlug').readOnly = false;
                     
                     document.getElementById('pageTitle').value = page.title;
                     document.getElementById('pageContent').value = page.content;
@@ -201,7 +199,7 @@
                     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                     
                     if (mode === 'edit') {
-                        await fetchAPI(`/api/content/${originalSlug}`, 'PUT', payload);
+                        await fetchAPI(`/api/content/${encodeURIComponent(originalSlug)}`, 'PUT', payload);
                         showSuccessToast('Page updated successfully');
                     } else {
                         await fetchAPI(`/api/content`, 'POST', payload);
@@ -222,7 +220,7 @@
             async function deletePage(slug) {
                 if (await confirmDelete(slug)) {
                     try {
-                        await fetchAPI(`/api/content/${slug}`, 'DELETE');
+                        await fetchAPI(`/api/content/${encodeURIComponent(slug)}`, 'DELETE');
                         showSuccessToast('Page deleted successfully');
                         loadPages();
                     } catch (error) {

@@ -100,7 +100,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-2 text-center">
-                                    <img id="imagePreview" src="https://via.placeholder.com/300x200?text=Image+Preview" alt="Preview" class="img-fluid rounded border border-secondary" style="max-height: 150px; object-fit: cover;">
+                                    <img id="imagePreview" src="https://placehold.co/300x200?text=Image+Preview" alt="Preview" class="img-fluid rounded border border-secondary" style="max-height: 150px; object-fit: cover;">
                                 </div>
                             </div>
                         </div>
@@ -158,10 +158,10 @@
                 if (url) {
                     img.src = url;
                     img.onerror = function() {
-                        this.src = 'https://via.placeholder.com/300x200?text=Invalid+Image+URL';
+                        this.src = 'https://placehold.co/300x200?text=Invalid+Image+URL';
                     };
                 } else {
-                    img.src = 'https://via.placeholder.com/300x200?text=Image+Preview';
+                    img.src = 'https://placehold.co/300x200?text=Image+Preview';
                 }
             }
             
@@ -187,7 +187,7 @@
                         <tr>
                             <td class="text-light fw-bold font-monospace">#${item.id}</td>
                             <td>
-                                <img src="${escapeHtml(item.catalogImageUrl)}" alt="img" class="rounded object-fit-cover" width="40" height="40" onerror="this.src='https://via.placeholder.com/40'">
+                                <img src="${escapeHtml(item.catalogImageUrl)}" alt="img" class="rounded object-fit-cover" width="40" height="40" onerror="this.src='https://placehold.co/40'">
                             </td>
                             <td class="fw-medium text-light">${escapeHtml(item.name)}</td>
                             <td><span class="badge badge-glass badge-glass-warning">${escapeHtml(item.category)}</span></td>
@@ -196,7 +196,7 @@
                                 <button class="btn btn-action btn-action-edit" onclick="editProduct(${item.id})" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button class="btn btn-action btn-action-delete" onclick="deleteProduct(${item.id}, '${escapeHtml(item.name)}')" title="Delete">
+                                <button class="btn btn-action btn-action-delete" onclick="deleteProduct(${item.id})" title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -292,7 +292,8 @@
                 }
             }
             
-            async function deleteProduct(id, name) {
+            async function deleteProduct(id) {
+                const name = productCache[id] ? productCache[id].name : 'this product';
                 if (await confirmDelete(name)) {
                     try {
                         await fetchAPI(`/api/catalog/${id}`, 'DELETE');

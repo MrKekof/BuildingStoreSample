@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Close sidebar on mobile when clicking outside
     document.addEventListener('click', function(event) {
-        if (window.innerWidth < 992) {
+        if (window.innerWidth < 992 && sidebar && sidebarCollapse) {
             const isClickInsideSidebar = sidebar.contains(event.target);
             const isClickOnToggle = sidebarCollapse.contains(event.target);
             
@@ -66,7 +66,8 @@ async function fetchAPI(url, method = 'GET', data = null) {
         const result = await response.json();
         
         if (!response.ok) {
-            throw new Error(result.message || result.error || `HTTP Error ${response.status}`);
+            const validationDetails = result.errors ? Object.values(result.errors).join('; ') : '';
+            throw new Error(validationDetails || result.message || result.error || `HTTP Error ${response.status}`);
         }
         
         return result;

@@ -14,11 +14,11 @@ import lombok.Setter;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 
- class NewsEntity extends MainEntity {
-    @Column(nullable=false)
-    private  String title;
+class NewsEntity extends MainEntity {
+    @Column(nullable = false, unique = true)
+    private String title;
 
-    @Column(columnDefinition ="TEXT" , nullable=false)
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
     @Column(nullable = false)

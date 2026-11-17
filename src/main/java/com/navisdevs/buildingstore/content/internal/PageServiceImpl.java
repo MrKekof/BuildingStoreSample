@@ -14,16 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-
-public class PageServiceImpl implements PageService {
+class PageServiceImpl implements PageService {
 
     private final PageRepo pageRepo;
 
     @Override
     public PageResponse getBySlug(String slug) {
         return pageRepo.findBySlug(slug)
-                .map(p ->new PageResponse(p.getSlug(), p.getTitle(), p.getContent()))
-                        .orElseThrow(()->new ResourceNotFoundException("Страница "+ slug +" не найдена"));
+                .map(this::mapToResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Страница " + slug + " не найдена"));
     }
 
     @Override
@@ -39,8 +38,8 @@ public class PageServiceImpl implements PageService {
     @Override
     @Transactional
     public PageResponse updatePage(String slug, PageRequest pageRequest) {
-        PageEntity page = pageRepo.findBySlug(slug).
-                orElseThrow(()->new ResourceNotFoundException("Страница "+slug+" не найдена"));
+        PageEntity page = pageRepo.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Страница " + slug + " не найдена"));
         page.setTitle(pageRequest.title());
         page.setContent(pageRequest.content());
         page.setSlug(pageRequest.slug());
@@ -50,18 +49,19 @@ public class PageServiceImpl implements PageService {
     @Override
     @Transactional
     public void deletePage(String slug) {
-        PageEntity page = pageRepo.findBySlug(slug).
-                orElseThrow(()->new ResourceNotFoundException("Страница "+slug+" не найдена"));
+        PageEntity page = pageRepo.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Страница " + slug + " не найдена"));
         pageRepo.delete(page);
     }
 
     @Override
-    public Page<PageResponse> searchPage(String slug, Pageable pageable) {
+    public Page<PageResponse> searchPage(String query, Pageable pageable) {
         Page<PageEntity> entities;
-        if (slug == null || slug.isBlank()) {
+        if (query == null || query.isBlank()) {
             entities = pageRepo.findAll(pageable);
-        }else{
-            entities = pageRepo.findByTitleContainingIgnoreCase(slug.trim(), pageable);
+        } else {
+            String trimmed = query.trim();
+            entities = pageRepo.findBySlugContainingIgnoreCaseOrTitleContainingIgnoreCase(trimmed, trimmed, pageable);
         }
         return entities.map(this::mapToResponse);
     }
@@ -70,6 +70,8 @@ public class PageServiceImpl implements PageService {
         return new PageResponse(
                 entity.getSlug(),
                 entity.getTitle(),
-                entity.getContent());
+                entity.getContent(),
+                entity.getCreatedAt()
+        );
     }
 }

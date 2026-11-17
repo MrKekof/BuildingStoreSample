@@ -33,13 +33,20 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/news/**", "/api/catalog/**", "/api/content/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html" , "/error").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/news/**",
+                                "/api/catalog/**",
+                                "/api/content/**",
+                                "/api/images/**",
+                                "/pages/**",
+                                "/catalog-view/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/error").permitAll()
 
                         .requestMatchers(HttpMethod.POST,
                                 "/api/news/**",
                                 "/api/content/**",
-                                "/api/catalog/**").hasRole("ADMIN")
+                                "/api/catalog/**",
+                                "/api/images/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT,
                                 "/api/news/**",
                                 "/api/content/**",
@@ -52,11 +59,12 @@ public class SecurityConfiguration {
                                 "/api/news/**",
                                 "/api/content/**",
                                 "/api/catalog/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
 
                         .anyRequest().authenticated()
                 )
                 .httpBasic(Customizer.withDefaults())
-                .formLogin(Customizer.withDefaults())
+                .formLogin(form -> form.defaultSuccessUrl("/admin", true))
                 .build();
     }
 

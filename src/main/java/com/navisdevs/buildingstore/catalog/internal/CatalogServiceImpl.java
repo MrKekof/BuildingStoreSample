@@ -17,13 +17,14 @@ class CatalogServiceImpl implements CatalogService {
     private final CatalogRepo catalogRepo;
 
 
+    @Override
     public Page<CatalogResponse> getCatalog(String category, Pageable pageable) {
         Page<CatalogEntity> entities;
         if (category == null || category.isBlank() || category.trim().equalsIgnoreCase("все")) {
             entities = catalogRepo.findAll(pageable);
-        }else  {
+        } else {
             String cleanedCategory = category.trim();
-            entities = catalogRepo.findByCategoryIgnoreCase(category, pageable);
+            entities = catalogRepo.findByCategoryIgnoreCase(cleanedCategory, pageable);
         }
         return entities.map(this::mapToResponse);
     }

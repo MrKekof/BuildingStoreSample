@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BuildingStore Admin | <span th:text="${title}">Dashboard</span></title>
+    <title th:text="${title != null ? 'BuildingStore Admin | ' + title : 'BuildingStore Admin'}">BuildingStore Admin</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -62,7 +62,7 @@
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 border-dark border-opacity-10 admin-dropdown">
                                 <li><h6 class="dropdown-header">Administrator</h6></li>
                                 <li><hr class="dropdown-divider border-dark border-opacity-10"></li>
-                                <li><a class="dropdown-item" href="/"><i class="bi bi-box-arrow-right me-2"></i>Exit Admin</a></li>
+                                <li><a class="dropdown-item" th:href="@{/logout}"><i class="bi bi-box-arrow-right me-2"></i>Exit Admin</a></li>
                             </ul>
                         </div>
                     </div>

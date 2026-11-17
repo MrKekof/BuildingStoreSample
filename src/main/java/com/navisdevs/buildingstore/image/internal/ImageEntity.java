@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ImageEntity extends MainEntity {
+class ImageEntity extends MainEntity {
 
     @Column(nullable = false)
     private String name;

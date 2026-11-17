@@ -18,11 +18,10 @@ public class ImageController {
     private final ImageService imageService;
 
     @PostMapping("/upload")
-    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<String> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
             String imageUrl = imageService.uploadImage(file);
-            return ResponseEntity.ok(imageUrl); // returns just the string URL
+            return ResponseEntity.status(HttpStatus.CREATED).body(imageUrl);
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload image");
         }

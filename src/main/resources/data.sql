@@ -1,40 +1,6 @@
 INSERT INTO catalog (name, description, catalog_image_url,
                      price, standard, diameter, material,
                      category, created_at, updated_at)
-VALUES  ('Труба стальная 20мм',
-         'Усиленная труба для систем отопления.',
-         'https://example.com/images/pipe20.jpg',
-         450.50, 'ГОСТ 3262-75', '20мм', 'Сталь', 'Трубы',
-         NOW(), NOW()),
-
-        ('Фитинг латунный 1/2', 'Соединительный элемент для труб.',
-         'https://example.com/images/fitting12.jpg',
-         125.00, 'ISO 9001', '12мм', 'Латунь', 'Фитинги',
-         NOW(), NOW())
-ON CONFLICT DO NOTHING;
-
-INSERT INTO news (title, content, news_image_url, published, created_at, updated_at)
-VALUES
-    ('Мы открылись!',
-     'Наш магазин строительных материалов NavisDevs начал работу.',
-     'https://example.com/news/open.jpg', true, NOW(), NOW()),
-
-    ('Скидки на фитинги',
-     'Весь март скидка 10% на все латунные изделия.',
-     'https://example.com/news/sale.jpg', true, NOW(), NOW())
-ON CONFLICT DO NOTHING;
-
-INSERT INTO pages (slug, title, content, created_at, updated_at)
-VALUES
-    ('about', 'О компании', 'NavisDevs — ваш надежный партнер в строительстве.',
-     NOW(), NOW()),
-    ('contacts', 'Контакты', 'Мы находимся по адресу: г. Строителей, д. 1.',
-     NOW(), NOW())
-    ON CONFLICT DO NOTHING;
-
-INSERT INTO catalog (name, description, catalog_image_url,
-                     price, standard, diameter, material,
-                     category, created_at, updated_at)
 VALUES
     ('Труба стальная 20мм', 'Усиленная труба для систем отопления.',
      'https://example.com/images/pipe20.jpg',
@@ -79,3 +45,4 @@ VALUES
     ('faq', 'Вопросы и ответы', 'Здесь вы найдете ответы на самые популярные вопросы о продукции.',
      NOW(), NOW())
 ON CONFLICT (slug) DO NOTHING;
+

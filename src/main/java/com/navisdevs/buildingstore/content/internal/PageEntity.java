@@ -11,14 +11,14 @@ import lombok.Setter;
 
 @Entity
 @Getter @Setter
-@Table(name="pages")
+@Table(name = "pages")
 @NoArgsConstructor @AllArgsConstructor
-public class PageEntity extends MainEntity {
+class PageEntity extends MainEntity {
     @Column(nullable = false, unique = true)
     private String slug;
     @Column(nullable = false)
     private String title;
-    @Column(nullable = false, columnDefinition ="TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
 }

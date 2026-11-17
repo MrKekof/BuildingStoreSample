@@ -94,7 +94,7 @@
                                         <input type="text" class="form-control" id="title" required placeholder="Enter news title">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="content" class="form-label">Content *</label>
+                                        <label for="newsContent" class="form-label">Content *</label>
                                         <textarea class="form-control" id="newsContent" rows="6" required placeholder="Enter news content"></textarea>
                                     </div>
                                     <div class="mb-3 form-check form-switch ps-5">
@@ -109,7 +109,7 @@
                                         <div class="form-text text-muted small">Select an image file to upload.</div>
                                     </div>
                                     <div class="mt-2 text-center">
-                                        <img id="newsImagePreview" src="https://via.placeholder.com/300x200?text=Image+Preview" alt="Preview" class="img-fluid rounded border border-secondary" style="max-height: 200px; object-fit: cover;">
+                                        <img id="newsImagePreview" src="https://placehold.co/300x200?text=Image+Preview" alt="Preview" class="img-fluid rounded border border-secondary" style="max-height: 200px; object-fit: cover;">
                                     </div>
                                 </div>
                             </div>
@@ -181,8 +181,11 @@
                 const img = document.getElementById('newsImagePreview');
                 if (url) {
                     img.src = url;
+                    img.onerror = function() {
+                        this.src = 'https://placehold.co/300x200?text=Invalid+Image+URL';
+                    };
                 } else {
-                    img.src = 'https://via.placeholder.com/300x200?text=Image+Preview';
+                    img.src = 'https://placehold.co/300x200?text=Image+Preview';
                 }
             }
 
@@ -233,7 +236,7 @@
                                 <button class="btn btn-action btn-action-edit" onclick="editNews(${item.id})" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button class="btn btn-action btn-action-delete" onclick="deleteNews(${item.id}, '${escapeHtml(item.title)}')" title="Delete">
+                                <button class="btn btn-action btn-action-delete" onclick="deleteNews(${item.id})" title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -335,7 +338,8 @@
                 }
             }
             
-            async function deleteNews(id, title) {
+            async function deleteNews(id) {
+                const title = newsCache[id] ? newsCache[id].title : 'this news item';
                 if (await confirmDelete(title)) {
                     try {
                         await fetchAPI(`/api/news/${id}`, 'DELETE');
